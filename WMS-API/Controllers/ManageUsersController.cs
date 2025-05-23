@@ -1,7 +1,9 @@
-﻿using MediatR;
+﻿using System.Security.Claims;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using WMS_CQRS_Business_Layer.CQRS.Commands.LogCommands;
 using WMS_CQRS_Business_Layer.CQRS.Commands.ProductsCommands;
 using WMS_CQRS_Business_Layer.CQRS.Commands.UserCommands;
 using WMS_CQRS_Business_Layer.CQRS.Queries.CategoryQueries;
@@ -76,11 +78,11 @@ namespace WMS_API.Controllers
         {
             try
             {
-                var User = await _mediator.Send(new GetUserByUsernameQuery(userName));
+                var user = await _mediator.Send(new GetUserByUsernameQuery(userName));
 
-                if(User.ProfilePicturePath != null && User.ProfilePicturePath != "")
+                if(user.ProfilePicturePath != null && user.ProfilePicturePath != "")
                 {
-                    bool fileDeleted = clsGlobal.DeleteFile(User.ProfilePicturePath);
+                    bool fileDeleted = clsGlobal.DeleteFile(user.ProfilePicturePath);
                     if (!fileDeleted)
                     {
                         return StatusCode(500, $"Failed to delete image file for Username: {userName}");
@@ -91,7 +93,16 @@ namespace WMS_API.Controllers
                 bool deleted = await _mediator.Send(new DeleteUserCommand(userName));
 
                 if (deleted)
+                {
+                    var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    await _mediator.Send(new AddNewLogCommand(new dtoLog
+                    {
+                        UserId = userId,
+                        Action = "DeleteUser",
+                        TimeStamp = DateTime.Now
+                    }));
                     return Ok("User deleted successfully.");
+                }
                 else
                     return BadRequest("Failed to delete User from the database.");
             }
@@ -135,7 +146,13 @@ namespace WMS_API.Controllers
                         await _mediator.Send(new UpdateUserPfpCommand(relativePath, updateUser.Username));
                     }
                 }
-
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                await _mediator.Send(new AddNewLogCommand(new dtoLog
+                {
+                    UserId = userId,
+                    Action = "UpdateUser",
+                    TimeStamp = DateTime.Now
+                }));
                 return Ok("User updated successfully.");
             }
             catch (KeyNotFoundException)

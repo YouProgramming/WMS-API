@@ -11,9 +11,10 @@ using WMS_Repository_Data_Layer.Repository.IRepos;
 
 namespace WMS_CQRS_Business_Layer.CQRS.Commands.CategoryCommandHandlers
 {
-    public class AddNewCategoryCommandHandler(ICategoryRepo categoryRepo) : IRequestHandler<AddNewCtegoryCommand, int>
+    public class AddNewCategoryCommandHandler(ICategoryRepo categoryRepo, ILogRepo logRepo) : IRequestHandler<AddNewCtegoryCommand, int>
     {
         private readonly ICategoryRepo _categoryRepo = categoryRepo;   
+        private readonly ILogRepo _logRepo = logRepo;
         public async Task<int> Handle(AddNewCtegoryCommand request, CancellationToken cancellationToken)
         {
             Category category = new()
@@ -21,7 +22,9 @@ namespace WMS_CQRS_Business_Layer.CQRS.Commands.CategoryCommandHandlers
                 CategoryName = request.Category.CategoryName
             };
 
-            return await _categoryRepo.InsertCategory(category);
+            int id = await _categoryRepo.InsertCategory(category);
+            
+            return id;
         }
     }
 }

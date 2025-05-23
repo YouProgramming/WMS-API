@@ -1,8 +1,10 @@
-﻿using MediatR;
+﻿using System.Security.Claims;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using WMS_CQRS_Business_Layer.CQRS.Commands.LogCommands;
 using WMS_CQRS_Business_Layer.CQRS.Commands.ProductsCommands;
 using WMS_CQRS_Business_Layer.CQRS.Queries.ProductQueries;
 using WMS_CQRS_Business_Layer.DTOs;
@@ -113,7 +115,13 @@ namespace WMS_API.Controllers
                         await _mediator.Send(new UpdateProductPictureCommand(relativePath, id));
                     }
                 }
-
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                await _mediator.Send(new AddNewLogCommand(new dtoLog
+                {
+                    UserId = userId,
+                    Action = "AddProduct",
+                    TimeStamp = DateTime.Now
+                }));
                 return Ok(new { Id = id });
             }
             catch (Exception e)
@@ -154,6 +162,14 @@ namespace WMS_API.Controllers
                     }
                 }
 
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                await _mediator.Send(new AddNewLogCommand(new dtoLog
+                {
+                    UserId = userId,
+                    Action = "UpdateProduct",
+                    TimeStamp = DateTime.Now
+                }));
+
                 return Ok("Product updated successfully.");
             }
             catch (KeyNotFoundException)
@@ -191,7 +207,16 @@ namespace WMS_API.Controllers
                 bool deleted = await _mediator.Send(new DeleteProductCommand(id));
 
                 if (deleted)
+                {
+                    var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    await _mediator.Send(new AddNewLogCommand(new dtoLog
+                    {
+                        UserId = userId,
+                        Action = "AddProduct",
+                        TimeStamp = DateTime.Now
+                    }));
                     return Ok("Product deleted successfully.");
+                }
                 else
                     return BadRequest("Failed to delete product from the database.");
             }

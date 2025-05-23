@@ -1,8 +1,10 @@
-﻿using MediatR;
+﻿using System.Security.Claims;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WMS_CQRS_Business_Layer.CQRS.Commands.CategoryCommands;
+using WMS_CQRS_Business_Layer.CQRS.Commands.LogCommands;
 using WMS_CQRS_Business_Layer.CQRS.Queries.CategoryQueries;
 using WMS_CQRS_Business_Layer.DTOs;
 
@@ -96,6 +98,13 @@ namespace WMS_API.Controllers
             try
             {
                 id = await _mediator.Send(new AddNewCtegoryCommand(category));
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                await _mediator.Send(new AddNewLogCommand(new dtoLog
+                {
+                    UserId = userId,
+                    Action = "AddCategory",
+                    TimeStamp = DateTime.Now
+                }));
             }
             catch (Exception e)
             {
@@ -121,7 +130,16 @@ namespace WMS_API.Controllers
             try
             {
                 if (await _mediator.Send(new UpdateCategoryCommand(category)))
+                {
+                    var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    await _mediator.Send(new AddNewLogCommand(new dtoLog
+                    {
+                        UserId = userId,
+                        Action = "UpdateCategory",
+                        TimeStamp = DateTime.Now
+                    }));
                     return Ok("Category Updated Successfully");
+                }
             }
             catch (Exception e)
             {
@@ -145,7 +163,16 @@ namespace WMS_API.Controllers
             try
             {
                 if (await _mediator.Send(new DeleteCategoryCommand(id)))
+                {
+                    var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    await _mediator.Send(new AddNewLogCommand(new dtoLog
+                    {
+                        UserId = userId,
+                        Action = "DeleteCategory",
+                        TimeStamp = DateTime.Now
+                    }));
                     return Ok("Category Deleted Successfully");
+                }
             }
             catch (Exception e)
             {

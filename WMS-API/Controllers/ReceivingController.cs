@@ -1,7 +1,10 @@
-﻿using MediatR;
+﻿using System.Net.Http;
+using System.Security.Claims;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using WMS_CQRS_Business_Layer.CQRS.Commands.LogCommands;
 using WMS_CQRS_Business_Layer.CQRS.Commands.ReceivingCommands;
 using WMS_CQRS_Business_Layer.CQRS.Queries.ReceivingsQueries;
 using WMS_CQRS_Business_Layer.DTOs;
@@ -24,6 +27,8 @@ namespace WMS_API.Controllers
             try
             {
                 var result = await _mediator.Send(new GetAllReceivingsQuery());
+               
+
                 return Ok(new { result });
             }
             catch (Exception ex)
@@ -68,6 +73,13 @@ namespace WMS_API.Controllers
             try
             {
                 var id = await _mediator.Send(new AddNewReceivingCommand(receiving));
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                await _mediator.Send(new AddNewLogCommand(new dtoLog
+                {
+                    UserId = userId,
+                    Action = "Add Receiving",
+                    TimeStamp = DateTime.Now
+                }));
                 return Ok(new { Message = "Receiving added successfully", Id = id });
             }
             catch (Exception ex)
@@ -94,6 +106,14 @@ namespace WMS_API.Controllers
                 if (!success)
                     return NotFound(new { Message = $"Receiving with ID: {receiving.ReceiveId} Not Found" });
 
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                await _mediator.Send(new AddNewLogCommand(new dtoLog
+                {
+                    UserId = userId,
+                    Action = "UpdateReceiving",
+                    TimeStamp = DateTime.Now
+                }));
+
                 return Ok(new { Message = "Receiving updated successfully" });
             }
             catch (Exception ex)
@@ -116,6 +136,14 @@ namespace WMS_API.Controllers
                 var success = await _mediator.Send(new DeleteReceivingCommand(id));
                 if (!success)
                     return NotFound(new { Message = $"Receiving with ID: {id} Not Found" });
+
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                await _mediator.Send(new AddNewLogCommand(new dtoLog
+                {
+                    UserId = userId,
+                    Action = "DeleteReceiving",
+                    TimeStamp = DateTime.Now
+                }));
 
                 return Ok(new { Message = "Receiving deleted successfully" });
             }

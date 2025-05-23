@@ -1,8 +1,10 @@
-﻿using MediatR;
+﻿using System.Security.Claims;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WMS_CQRS_Business_Layer.CQRS.Commands.IssuingCommands;
+using WMS_CQRS_Business_Layer.CQRS.Commands.LogCommands;
 using WMS_CQRS_Business_Layer.CQRS.Queries.IssuingQueries;
 using WMS_CQRS_Business_Layer.DTOs;
 
@@ -71,6 +73,13 @@ namespace WMS_API.Controllers
             try
             {
                 var id = await _mediator.Send(new AddNewIssuingCommand(issuing));
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                await _mediator.Send(new AddNewLogCommand(new dtoLog
+                {
+                    UserId = userId,
+                    Action = "AddIssuing",
+                    TimeStamp = DateTime.Now
+                }));
                 return Ok(new { Message = "Issuing added successfully", Id = id });
             }
             catch (Exception ex)
@@ -100,6 +109,13 @@ namespace WMS_API.Controllers
                 {
                     return NotFound(new { Message = $"Issuing with ID: {issuing.IssueId} Not Found" });
                 }
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                await _mediator.Send(new AddNewLogCommand(new dtoLog
+                {
+                    UserId = userId,
+                    Action = "UpdateIssuing",
+                    TimeStamp = DateTime.Now
+                }));
                 return Ok(new { Message = "Issuing updated successfully" });
             }
             catch (Exception ex)
@@ -125,6 +141,13 @@ namespace WMS_API.Controllers
                 {
                     return NotFound(new { Message = $"Issuing with ID: {id} Not Found" });
                 }
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                await _mediator.Send(new AddNewLogCommand(new dtoLog
+                {
+                    UserId = userId,
+                    Action = "DeleteIssuing",
+                    TimeStamp = DateTime.Now
+                }));
                 return Ok(new { Message = "Issuing deleted successfully" });
             }
             catch (Exception ex)
